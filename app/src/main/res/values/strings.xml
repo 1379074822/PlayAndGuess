@@ -1,0 +1,62 @@
+<resources>
+    <string name="app_name">小连猜词</string>
+    <string name="hello_world">Hello World!</string>
+    <string name="game_title">你比划我猜</string>
+    <string name="start_game">开始游戏</string>
+    <string name="add_words">添加词库</string>
+    <string name="word_library_title">词库标题</string>
+    <string name="word_library_content">词库内容</string>
+    <string name="word_library_content_hint">每行输入一个词语</string>
+    <string name="confirm">确定</string>
+    <string name="cancel">取消</string>
+    <string name="add_word_library">添加词库</string>
+    <string name="word_library_list">词库列表</string>
+    <string name="no_libraries">暂无词库</string>
+    <string name="update_library">更新词库</string>
+    <string name="save_new_library">保存新词库</string>
+    <string name="create_new_library">添加新词库</string>
+    <string name="title_already_exists">词库标题已存在，请使用不同标题</string>
+    <string name="action_home">主页</string>
+    <string name="action_back">返回</string>
+    <string name="select_library">请选择词库</string>
+    <string name="search_hint">搜索词库</string>
+    <string name="no_libraries_yet">还没有词库，请先添加词库</string>
+    <string name="word_count">%d个词语</string>
+    <string name="search_no_result">没有找到匹配的词库</string>
+    <string name="action_settings">设置</string>
+    <string name="game_duration_setting">游戏时长设置</string>
+    <string name="duration_120">120秒 (2分钟)</string>
+    <string name="duration_300">300秒 (5分钟)</string>
+    <string name="duration_custom">自定义时长</string>
+    <string name="enter_custom_duration">输入自定义时长</string>
+    <string name="seconds">秒</string>
+    <string name="settings_saved">设置已保存</string>
+    <string name="please_enter_valid_duration">请输入有效的时长（10-600秒）</string>
+    
+    <!-- 游戏页面字符串 -->
+    <string name="swipe_up_correct">向上滑动：猜对了</string>
+    <string name="swipe_down_skip">向下滑动：跳过</string>
+    <string name="word_hint">下一个词语即将出现</string>
+    <string name="remaining_time">剩余时间: %d秒</string>
+    <string name="skip_hint">向下滑动跳过</string>
+    <string name="correct_hint">向上滑动正确</string>
+    <string name="buffering">准备中...</string>
+    
+    <!-- 结算页面字符串 -->
+    <string name="game_over">游戏结束</string>
+    <string name="correct_count">猜对: %d 个词语</string>
+    <string name="skipped_count">跳过: %d 个词语</string>
+    <string name="game_result">游戏结果</string>
+    <string name="back_to_home">返回主页</string>
+    <string name="guessed_words">猜对的词语</string>
+    <string name="skipped_words">跳过的词语</string>
+    <string name="words_list">词语列表</string>
+    <string name="color_explanation">绿色=猜对，橙色=跳过</string>
+    
+    <!-- 暂停菜单字符串 -->
+    <string name="pause_game">暂停游戏</string>
+    <string name="game_paused">游戏已暂停</string>
+    <string name="resume_game">继续游戏</string>
+    <string name="restart_game">重新开始</string>
+    <string name="back_to_library">返回词库选择</string>
+</resources> 
