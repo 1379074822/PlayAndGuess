@@ -4,7 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -37,15 +43,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-public class GamePlayActivity extends BaseActivity implements GestureDetector.OnGestureListener {
+public class GamePlayActivity extends BaseActivity implements GestureDetector.OnGestureListener, SensorEventListener {
 
     // 常量定义
     private static final String TAG = "GamePlayActivity";
     private static final String EXTRA_LIBRARY_ID = "extra_library_id";
-    private static final int BUFFER_TIME = 3000; // 缓冲时间（毫秒）
-    private static final float SWIPE_THRESHOLD = 100; // 滑动阈值
-    private static final float SWIPE_VELOCITY_THRESHOLD = 100; // 滑动速度阈值
-
+    private static final long GAME_DURATION_MS = 60000; // 游戏持续时间，1分钟
+    private static final long BUFFER_DURATION_MS = 3000; // 缓冲时间，3秒
+    private static final int DEFAULT_ANIMATION_DURATION = 300; // 动画持续时间，300毫秒
+    private static final float MAX_DISTANCE = 0.4f; // 最大滑动距离为屏幕的40%
+    private static final int MIN_VELOCITY = 200; // 最小滑动速度
+    
+    // 传感器相关常量
+    private static final float FLIP_THRESHOLD = 7.0f; // 翻转阈值，重力加速度变化
+    private static final long SENSOR_COOLDOWN_MS = 1000; // 传感器冷却时间，防止连续触发
+    
+    // 传感器相关
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private boolean sensorEnabled = false;
+    private static final float FLIP_DOWN_THRESHOLD = -9.0f; // 向下翻转阈值
+    private static final float FLIP_UP_THRESHOLD = 9.0f;    // 向上翻转阈值
+    private static final float NORMAL_POSITION_THRESHOLD = 5.0f; // 正常位置阈值
+    private static final long SENSOR_COOLDOWN = 1000;       // 传感器冷却时间（毫秒）
+    private long lastSensorActionTime = 0;                  // 上次传感器动作时间
+    private boolean isFlippedDown = false;                  // 是否处于向下翻转状态
+    private boolean isFlippedUp = false;                    // 是否处于向上翻转状态
+    
     // 视图对象
     private TextView textViewTimer;
     private TextView textViewLibraryTitle;
@@ -77,6 +101,48 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     private boolean isBuffering = false; // 是否处于缓冲倒计时阶段
     private Dialog pauseDialog; // 暂停对话框
 
+    // 传感器事件监听器
+    private final SensorEventListener sensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && gameInProgress) {
+                float z = event.values[2]; // Z轴数据
+                long currentTime = System.currentTimeMillis();
+                
+                // 检测手机是否回到正常位置（既不是向上翻转也不是向下翻转的状态）
+                if (Math.abs(z) < NORMAL_POSITION_THRESHOLD) {
+                    isFlippedDown = false;
+                    isFlippedUp = false;
+                    return;
+                }
+                
+                // 检查是否超过冷却时间，避免连续触发
+                if (currentTime - lastSensorActionTime > SENSOR_COOLDOWN) {
+                    // 向下翻转手机（屏幕朝下）- 表示猜对了
+                    if (z < FLIP_DOWN_THRESHOLD && !isFlippedDown) {
+                        isFlippedDown = true;
+                        lastSensorActionTime = currentTime;
+                        Log.d(TAG, "检测到向下翻转动作，z值: " + z);
+                        runOnUiThread(() -> wordGuessedCorrectly());
+                    }
+                    
+                    // 向上翻转手机（屏幕朝上抬起）- 表示跳过
+                    else if (z > FLIP_UP_THRESHOLD && !isFlippedUp) {
+                        isFlippedUp = true;
+                        lastSensorActionTime = currentTime;
+                        Log.d(TAG, "检测到向上翻转动作，z值: " + z);
+                        runOnUiThread(() -> wordSkipped());
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            // 传感器精度变化时的处理，通常可以忽略
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,6 +168,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 初始化游戏数据
         initGameData();
 
+        // 初始化传感器
+        initSensors();
+
         // 开始缓冲倒计时
         startBuffering();
     }
@@ -120,14 +189,17 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         viewCorrectArea = findViewById(R.id.viewCorrectArea);
         buttonPause = findViewById(R.id.buttonPause);
 
-        // 设置提示文本
-        textViewSkipHint.setText(R.string.swipe_down_skip);
-        textViewCorrectHint.setText(R.string.swipe_up_correct);
+        // 隐藏滑动提示
+        textViewSkipHint.setVisibility(View.GONE);
+        textViewCorrectHint.setVisibility(View.GONE);
+        viewSkipArea.setVisibility(View.GONE);
+        viewCorrectArea.setVisibility(View.GONE);
 
-        // 隐藏游戏元素，显示加载中
+        // 初始化词条文本视图
         textViewWord.setVisibility(View.INVISIBLE);
-        textViewSkipHint.setVisibility(View.INVISIBLE);
-        textViewCorrectHint.setVisibility(View.INVISIBLE);
+        textViewWord.setAlpha(0f); // 确保透明度初始化
+
+        // 显示加载中
         textViewBuffering.setVisibility(View.VISIBLE);
         textViewBuffering.setText(R.string.word_hint);
         
@@ -182,12 +254,34 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     }
 
     /**
+     * 初始化传感器
+     */
+    private void initSensors() {
+        // 初始化传感器管理器
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            if (accelerometer != null) {
+                sensorEnabled = true;
+                Log.d(TAG, "加速度传感器初始化成功");
+            } else {
+                sensorEnabled = false;
+                Log.e(TAG, "设备不支持加速度传感器");
+                Toast.makeText(this, "您的设备不支持加速度传感器，将使用触摸操作", Toast.LENGTH_LONG).show();
+            }
+        } else {
+            sensorEnabled = false;
+            Log.e(TAG, "无法获取传感器服务");
+        }
+    }
+
+    /**
      * 开始缓冲倒计时
      */
     private void startBuffering() {
         isBuffering = true;
         
-        bufferTimer = new CountDownTimer(BUFFER_TIME, 1000) {
+        bufferTimer = new CountDownTimer(BUFFER_DURATION_MS, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 // 显示倒计时
@@ -201,9 +295,7 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
                 // 隐藏缓冲提示，显示游戏元素
                 textViewBuffering.setVisibility(View.GONE);
                 textViewWord.setVisibility(View.VISIBLE);
-                textViewSkipHint.setVisibility(View.VISIBLE);
-                textViewCorrectHint.setVisibility(View.VISIBLE);
-
+                
                 // 开始游戏
                 startGame();
             }
@@ -218,6 +310,11 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 标记游戏开始
         gameInProgress = true;
         isPaused = false;
+
+        // 提前重置文本视图状态
+        textViewWord.setTranslationX(0f);
+        textViewWord.setAlpha(1f);
+        textViewWord.setVisibility(View.VISIBLE);
 
         // 显示第一个词语
         showNextWord();
@@ -238,6 +335,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
                 endGame();
             }
         }.start();
+        
+        // 记录游戏开始
+        Log.d(TAG, "游戏正式开始，第一个词条已显示");
     }
 
     /**
@@ -258,12 +358,35 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
             String word = wordList.get(currentWordIndex);
             textViewWord.setText(word);
             
+            // 确保文本视图是可见的
+            textViewWord.setVisibility(View.VISIBLE);
+            
             // 显示单词的动画效果
             textViewWord.setAlpha(0f);
             textViewWord.animate()
                     .alpha(1f)
                     .setDuration(300)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            // 确保动画结束后词条是可见的
+                            textViewWord.setAlpha(1f);
+                        }
+                    })
                     .start();
+            
+            // 500ms后再次确认词条可见性
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (textViewWord != null && textViewWord.getAlpha() < 1f) {
+                        textViewWord.setAlpha(1f);
+                    }
+                }
+            }, 500);
+            
+            // 记录日志
+            Log.d(TAG, "显示词条: " + word);
         } else {
             // 所有词语已经用完，游戏结束
             endGame();
@@ -321,7 +444,7 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 向左或向右滑出
         float direction = correct ? -1000f : 1000f;
         
-        ObjectAnimator animator = ObjectAnimator.ofFloat(textViewWord, "translationX", 0f, direction);
+        final ObjectAnimator animator = ObjectAnimator.ofFloat(textViewWord, "translationX", 0f, direction);
         animator.setDuration(200);
         animator.setInterpolator(new AccelerateDecelerateInterpolator());
         animator.addListener(new AnimatorListenerAdapter() {
@@ -332,9 +455,24 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
                 showNextWord();
                 
                 // 滑入动画
-                ObjectAnimator.ofFloat(textViewWord, "translationX", -direction, 0f)
-                        .setDuration(200)
-                        .start();
+                ObjectAnimator slideIn = ObjectAnimator.ofFloat(textViewWord, "translationX", -direction, 0f);
+                slideIn.setDuration(200);
+                slideIn.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        // 确保滑入动画结束后文字可见
+                        textViewWord.setTranslationX(0f);
+                        textViewWord.setAlpha(1f);
+                    }
+                });
+                slideIn.start();
+            }
+            
+            @Override
+            public void onAnimationCancel(Animator animation) {
+                // 如果动画被取消，确保重置位置
+                textViewWord.setTranslationX(0f);
+                textViewWord.setAlpha(1f);
             }
         });
         animator.start();
@@ -477,8 +615,6 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         
         // 重置UI
         textViewWord.setVisibility(View.INVISIBLE);
-        textViewSkipHint.setVisibility(View.INVISIBLE);
-        textViewCorrectHint.setVisibility(View.INVISIBLE);
         textViewBuffering.setVisibility(View.VISIBLE);
         updateTimerText(gameTimeInSeconds);
         
@@ -598,12 +734,12 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 确保是垂直方向的滑动（Y方向的距离大于X方向）
         if (Math.abs(diffY) > Math.abs(diffX)) {
             // 向下滑动 - 跳过
-            if (diffY > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+            if (diffY > FLIP_THRESHOLD && Math.abs(velocityY) > MIN_VELOCITY) {
                 wordSkipped();
                 return true;
             }
             // 向上滑动 - 猜对
-            else if (-diffY > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+            else if (-diffY > FLIP_THRESHOLD && Math.abs(velocityY) > MIN_VELOCITY) {
                 wordGuessedCorrectly();
                 return true;
             }
@@ -612,20 +748,67 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         return false;
     }
     
+    // 实现SensorEventListener接口方法
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        // 不做任何处理，因为我们使用了单独的SensorEventListener实例
+    }
+    
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // 不做任何处理，传感器精度变化时的回调
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        // 注册传感器监听器
+        if (sensorEnabled && sensorManager != null && accelerometer != null) {
+            sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+            Log.d(TAG, "传感器监听器已注册");
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        
+        // 取消注册传感器监听器，避免电池消耗
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(sensorEventListener);
+            Log.d(TAG, "传感器监听器已取消注册");
+        }
+        
+        // 如果游戏正在进行，自动暂停
+        if ((isBuffering || gameInProgress) && !isPaused) {
+            pauseGame();
+        }
+    }
+    
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // 取消所有计时器
         if (gameTimer != null) {
             gameTimer.cancel();
+            gameTimer = null;
         }
         if (bufferTimer != null) {
             bufferTimer.cancel();
+            bufferTimer = null;
         }
         
         // 关闭对话框
         if (pauseDialog != null && pauseDialog.isShowing()) {
             pauseDialog.dismiss();
+            pauseDialog = null;
+        }
+        
+        // 清理动画
+        if (textViewWord != null) {
+            textViewWord.clearAnimation();
+            textViewWord.animate().cancel();
         }
     }
     

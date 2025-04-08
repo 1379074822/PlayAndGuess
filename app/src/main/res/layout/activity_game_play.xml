@@ -48,68 +48,76 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 中央词语显示 -->
+    <!-- 中央词语显示，现在占用更大的空间并自动调整字体大小 -->
     <TextView
         android:id="@+id/textViewWord"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="80dp"
+        android:layout_marginBottom="80dp"
         android:text="加载中..."
-        android:textSize="0sp"
+        android:gravity="center"
+        android:textColor="#000000"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:autoSizeTextType="uniform"
-        android:autoSizeMinTextSize="24sp"
-        android:autoSizeMaxTextSize="56sp"
-        android:autoSizeStepGranularity="2sp" />
+        android:autoSizeMinTextSize="36sp"
+        android:autoSizeMaxTextSize="120sp"
+        android:autoSizeStepGranularity="2sp"
+        android:maxLines="1" />
 
-    <!-- 跳过提示 -->
+    <!-- 隐藏的提示文本，保留引用但在代码中设置为不可见 -->
     <TextView
         android:id="@+id/textViewSkipHint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/skip_hint"
         android:textSize="16sp"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@+id/textViewWord"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.7" />
 
-    <!-- 向上滑动区域 -->
+    <!-- 隐藏的滑动区域 -->
     <View
         android:id="@+id/viewSkipArea"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0.1"
-        android:background="?attr/selectableItemBackground"
+        android:alpha="0"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@+id/textViewWord"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- 正确提示 -->
+    <!-- 隐藏的正确提示 -->
     <TextView
         android:id="@+id/textViewCorrectHint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/correct_hint"
         android:textSize="16sp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewWord"
         app:layout_constraintVertical_bias="0.3" />
 
-    <!-- 向下滑动区域 -->
+    <!-- 隐藏的滑动区域 -->
     <View
         android:id="@+id/viewCorrectArea"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:alpha="0.1"
-        android:background="?attr/selectableItemBackground"
+        android:alpha="0"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
