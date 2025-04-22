@@ -78,10 +78,36 @@
         android:clipToPadding="false"
         android:paddingBottom="8dp"
         android:nestedScrollingEnabled="true"
-        app:layout_constraintBottom_toTopOf="@+id/buttonBackToHome"
+        app:layout_constraintBottom_toTopOf="@+id/buttonPlayAgain"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewColorExp" />
+
+    <!-- 再来一次按钮 -->
+    <Button
+        android:id="@+id/buttonPlayAgain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/play_again"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/buttonSelectLibrary"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        android:layout_marginStart="16dp" />
+
+    <!-- 选择词库按钮 -->
+    <Button
+        android:id="@+id/buttonSelectLibrary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:text="@string/select_library"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/buttonPlayAgain"
+        app:layout_constraintEnd_toStartOf="@+id/buttonBackToHome" />
 
     <!-- 回到主页按钮 -->
     <Button
@@ -93,6 +119,7 @@
         android:text="@string/back_to_home"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/buttonSelectLibrary" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

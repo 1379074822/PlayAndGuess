@@ -644,7 +644,6 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      * 结束游戏
      */
     private void endGame() {
-        // 标记游戏结束
         gameInProgress = false;
         
         // 取消计时器
@@ -652,44 +651,41 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
             gameTimer.cancel();
         }
         
-        // 记录结果
-        logWordResults();
+        // 记录游戏结果
+        Log.d(TAG, "游戏结束，猜对: " + correctCount + "个, 跳过: " + skippedCount + "个");
+        
+        // 创建结果列表
+        ArrayList<WordResult> results = new ArrayList<>();
+        
+        // 为已经处理过的单词创建WordResult对象
+        for (int i = 0; i < wordList.size() && i <= currentWordIndex; i++) {
+            String word = wordList.get(i);
+            
+            // 搜索这个词在wordResults列表中是否存在
+            boolean isCorrect = false;
+            boolean isSkipped = false;
+            
+            for (WordResult existingResult : wordResults) {
+                if (existingResult.getWord().equals(word)) {
+                    isCorrect = existingResult.isCorrect();
+                    isSkipped = existingResult.isSkipped();
+                    break;
+                }
+            }
+            
+            // 创建新的WordResult对象
+            WordResult newResult = new WordResult(word, isCorrect, isSkipped);
+            results.add(newResult);
+        }
         
         // 跳转到结果页面
         Intent intent = new Intent(this, GameResultActivity.class);
+        intent.putExtra(GameResultActivity.EXTRA_WORD_RESULTS, results);
         intent.putExtra(GameResultActivity.EXTRA_CORRECT_COUNT, correctCount);
         intent.putExtra(GameResultActivity.EXTRA_SKIPPED_COUNT, skippedCount);
-        intent.putExtra(GameResultActivity.EXTRA_WORD_RESULTS, wordResults);
+        intent.putExtra(GameResultActivity.EXTRA_LIBRARY_ID, wordLibrary.getId());
         startActivity(intent);
-        
-        // 结束当前活动
         finish();
-    }
-
-    /**
-     * 打印词语结果列表用于调试
-     */
-    private void logWordResults() {
-        if (wordResults == null || wordResults.isEmpty()) {
-            Log.e(TAG, "词语结果列表为空");
-            return;
-        }
-        
-        Log.d(TAG, "游戏结束，词语结果列表: 共" + wordResults.size() + "个元素");
-        int correctCount = 0;
-        int skippedCount = 0;
-        
-        for (int i = 0; i < wordResults.size(); i++) {
-            WordResult result = wordResults.get(i);
-            Log.d(TAG, "第" + i + "个词: " + result.getWord() + 
-                  ", 猜对=" + result.isCorrect() + 
-                  ", 跳过=" + result.isSkipped());
-            
-            if (result.isCorrect()) correctCount++;
-            if (result.isSkipped()) skippedCount++;
-        }
-        
-        Log.d(TAG, "统计结果: 猜对=" + correctCount + ", 跳过=" + skippedCount);
     }
 
     @Override

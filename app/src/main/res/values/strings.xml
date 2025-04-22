@@ -18,7 +18,7 @@
     <string name="title_already_exists">词库标题已存在，请使用不同标题</string>
     <string name="action_home">主页</string>
     <string name="action_back">返回</string>
-    <string name="select_library">请选择词库</string>
+    <string name="select_library_title">请选择词库</string>
     <string name="search_hint">搜索词库</string>
     <string name="no_libraries_yet">还没有词库，请先添加词库</string>
     <string name="word_count">%d个词语</string>
@@ -48,6 +48,8 @@
     <string name="skipped_count">跳过: %d 个词语</string>
     <string name="game_result">游戏结果</string>
     <string name="back_to_home">返回主页</string>
+    <string name="play_again">再来一次</string>
+    <string name="select_library">选择词库</string>
     <string name="guessed_words">猜对的词语</string>
     <string name="skipped_words">跳过的词语</string>
     <string name="words_list">词语列表</string>

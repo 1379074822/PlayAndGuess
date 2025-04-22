@@ -25,12 +25,15 @@ public class GameResultActivity extends BaseActivity {
     public static final String EXTRA_WORD_RESULTS = "extra_word_results";
     public static final String EXTRA_CORRECT_COUNT = "extra_correct_count";
     public static final String EXTRA_SKIPPED_COUNT = "extra_skipped_count";
+    public static final String EXTRA_LIBRARY_ID = "extra_library_id";
     
     // 视图对象
     private TextView textViewScore;
     private TextView textViewResultLabel;
     private RecyclerView recyclerViewResults;
     private Button buttonBackToHome;
+    private Button buttonPlayAgain;
+    private Button buttonSelectLibrary;
     
     // 适配器
     private WordResultAdapter adapter;
@@ -39,6 +42,7 @@ public class GameResultActivity extends BaseActivity {
     private ArrayList<WordResult> wordResults;
     private int correctCount = 0;
     private int skippedCount = 0;
+    private String libraryId; // 保存词库ID以便再次游戏使用
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +94,8 @@ public class GameResultActivity extends BaseActivity {
         textViewResultLabel = findViewById(R.id.textViewResultLabel);
         recyclerViewResults = findViewById(R.id.recyclerViewResults);
         buttonBackToHome = findViewById(R.id.buttonBackToHome);
+        buttonPlayAgain = findViewById(R.id.buttonPlayAgain);
+        buttonSelectLibrary = findViewById(R.id.buttonSelectLibrary);
     }
     
     /**
@@ -122,9 +128,17 @@ public class GameResultActivity extends BaseActivity {
                 Log.e(TAG, "没有找到跳过数量，Extra key: " + EXTRA_SKIPPED_COUNT);
             }
             
+            // 获取词库ID
+            if (intent.hasExtra(EXTRA_LIBRARY_ID)) {
+                libraryId = intent.getStringExtra(EXTRA_LIBRARY_ID);
+                Log.d(TAG, "获取到词库ID: " + libraryId);
+            } else {
+                Log.e(TAG, "没有找到词库ID，Extra key: " + EXTRA_LIBRARY_ID);
+            }
+            
             // 记录获取到的数据
             Log.d(TAG, "获取数据: 总词数=" + (wordResults != null ? wordResults.size() : 0) + 
-                   ", 猜对数=" + correctCount + ", 跳过数=" + skippedCount);
+                   ", 猜对数=" + correctCount + ", 跳过数=" + skippedCount + ", 词库ID=" + libraryId);
         } else {
             Log.e(TAG, "获取Intent失败，可能是由于其他方式启动活动");
         }
@@ -189,6 +203,31 @@ public class GameResultActivity extends BaseActivity {
                 // 返回主页
                 Intent intent = new Intent(GameResultActivity.this, MainActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(intent);
+                finish();
+            }
+        });
+
+        // 再来一次按钮点击事件
+        buttonPlayAgain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (libraryId != null && !libraryId.isEmpty()) {
+                    // 使用当前词库再次开始游戏
+                    GamePlayActivity.start(GameResultActivity.this, libraryId);
+                    finish();
+                } else {
+                    Toast.makeText(GameResultActivity.this, "无法找到词库信息", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // 选择词库按钮点击事件
+        buttonSelectLibrary.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 跳转到选择词库页面
+                Intent intent = new Intent(GameResultActivity.this, GameActivity.class);
                 startActivity(intent);
                 finish();
             }
