@@ -11,6 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -53,6 +54,10 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     private static final int DEFAULT_ANIMATION_DURATION = 300; // 动画持续时间，300毫秒
     private static final float MAX_DISTANCE = 0.4f; // 最大滑动距离为屏幕的40%
     private static final int MIN_VELOCITY = 200; // 最小滑动速度
+    
+    // 语音文本常量
+    private static final String SPEECH_CORRECT = "答对了";
+    private static final String SPEECH_SKIP = "不会";
     
     // 传感器相关常量
     private static final float FLIP_THRESHOLD = 7.0f; // 翻转阈值，重力加速度变化
@@ -105,7 +110,7 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     private final SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && gameInProgress) {
+            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER && gameInProgress && !isPaused) {
                 float z = event.values[2]; // Z轴数据
                 long currentTime = System.currentTimeMillis();
                 
@@ -143,6 +148,11 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         }
     };
 
+    // 音频播放相关
+    private MediaPlayer mpCorrect; // 答对了音频
+    private MediaPlayer mpSkip;    // 不会/跳过音频
+    private boolean audioReady = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -153,6 +163,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
 
         // 初始化手势检测器
         gestureDetector = new GestureDetectorCompat(this, this);
+
+        // 初始化音频
+        initAudio();
 
         // 获取传递的数据
         String libraryId = getIntent().getStringExtra(EXTRA_LIBRARY_ID);
@@ -210,6 +223,93 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
                 pauseGame();
             }
         });
+    }
+
+    /**
+     * 初始化音频播放器
+     */
+    private void initAudio() {
+        try {
+            // 初始化"答对了"音频
+            mpCorrect = MediaPlayer.create(this, R.raw.correct);
+            if (mpCorrect != null) {
+                // 设置播放完成监听器，释放资源
+                mpCorrect.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        // 播放结束后重置但不释放，方便重复使用
+                        if (mp != null) {
+                            mp.seekTo(0);
+                        }
+                    }
+                });
+            }
+            
+            // 初始化"不会"音频
+            mpSkip = MediaPlayer.create(this, R.raw.skip);
+            if (mpSkip != null) {
+                // 设置播放完成监听器
+                mpSkip.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        // 播放结束后重置但不释放，方便重复使用
+                        if (mp != null) {
+                            mp.seekTo(0);
+                        }
+                    }
+                });
+            }
+            
+            // 如果两个播放器都成功创建，标记音频功能已就绪
+            if (mpCorrect != null && mpSkip != null) {
+                audioReady = true;
+                Log.d(TAG, "音频播放器初始化成功");
+            } else {
+                Log.e(TAG, "音频播放器初始化失败");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "初始化音频播放器出错: " + e.getMessage());
+            e.printStackTrace();
+            
+            // 确保关闭已创建的播放器
+            releaseAudioPlayers();
+        }
+    }
+    
+    /**
+     * 释放音频播放器资源
+     */
+    private void releaseAudioPlayers() {
+        // 释放"答对了"播放器
+        if (mpCorrect != null) {
+            try {
+                if (mpCorrect.isPlaying()) {
+                    mpCorrect.stop();
+                }
+                mpCorrect.release();
+            } catch (Exception e) {
+                Log.e(TAG, "释放correct播放器异常: " + e.getMessage());
+            } finally {
+                mpCorrect = null;
+            }
+        }
+        
+        // 释放"不会"播放器
+        if (mpSkip != null) {
+            try {
+                if (mpSkip.isPlaying()) {
+                    mpSkip.stop();
+                }
+                mpSkip.release();
+            } catch (Exception e) {
+                Log.e(TAG, "释放skip播放器异常: " + e.getMessage());
+            } finally {
+                mpSkip = null;
+            }
+        }
+        
+        // 标记音频功能未就绪
+        audioReady = false;
     }
 
     /**
@@ -407,6 +507,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 输出调试信息
         Log.d(TAG, "猜对: " + currentWord + ", 总计猜对: " + correctCount + ", 总列表大小: " + wordResults.size());
         
+        // 播放语音
+        speakText(SPEECH_CORRECT);
+        
         // 显示猜对提示
         Toast.makeText(this, "猜对了：" + currentWord, Toast.LENGTH_SHORT).show();
         
@@ -429,12 +532,73 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
         // 输出调试信息
         Log.d(TAG, "跳过: " + currentWord + ", 总计跳过: " + skippedCount + ", 总列表大小: " + wordResults.size());
         
+        // 播放语音
+        speakText(SPEECH_SKIP);
+        
         // 显示跳过提示
         Toast.makeText(this, "跳过：" + currentWord, Toast.LENGTH_SHORT).show();
         
         // 显示下一个词语
         currentWordIndex++;
         showWordChangeAnimation(false);
+    }
+
+    /**
+     * 播放语音
+     * @param text 要播放的文本
+     */
+    private void speakText(String text) {
+        // 如果音频未准备好，静默返回
+        if (!audioReady) {
+            Log.d(TAG, "音频未准备好，跳过音频播放: " + text);
+            return;
+        }
+        
+        try {
+            MediaPlayer playerToUse = null;
+            
+            // 根据文本选择对应的播放器
+            if (SPEECH_CORRECT.equals(text)) {
+                playerToUse = mpCorrect;
+            } else if (SPEECH_SKIP.equals(text)) {
+                playerToUse = mpSkip;
+            }
+            
+            // 播放选中的音频
+            if (playerToUse != null) {
+                // 停止所有可能正在播放的音频
+                stopAllAudio();
+                
+                // 播放新音频
+                playerToUse.start();
+                Log.d(TAG, "音频播放成功: " + text);
+            } else {
+                Log.w(TAG, "没有对应的音频: " + text);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "播放音频时发生异常: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 停止所有正在播放的音频
+     */
+    private void stopAllAudio() {
+        try {
+            // 停止"答对了"音频
+            if (mpCorrect != null && mpCorrect.isPlaying()) {
+                mpCorrect.pause();
+                mpCorrect.seekTo(0);
+            }
+            
+            // 停止"不会"音频
+            if (mpSkip != null && mpSkip.isPlaying()) {
+                mpSkip.pause();
+                mpSkip.seekTo(0);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "停止音频时出现异常: " + e.getMessage());
+        }
     }
 
     /**
@@ -487,6 +651,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
             // 暂停游戏状态
             isPaused = true;
             
+            // 停止正在播放的音频
+            stopAllAudio();
+            
             // 在缓冲阶段暂停
             if (isBuffering && bufferTimer != null) {
                 bufferTimer.cancel();
@@ -495,6 +662,12 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
             // 在游戏进行阶段暂停
             if (gameInProgress && gameTimer != null) {
                 gameTimer.cancel();
+            }
+            
+            // 暂停传感器监听
+            if (sensorManager != null && sensorEnabled) {
+                sensorManager.unregisterListener(sensorEventListener);
+                Log.d(TAG, "暂停游戏：传感器监听器已取消注册");
             }
             
             // 显示暂停对话框
@@ -560,6 +733,12 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
 
         // 恢复游戏状态
         isPaused = false;
+        
+        // 重新注册传感器监听
+        if (sensorEnabled && sensorManager != null && accelerometer != null) {
+            sensorManager.registerListener(sensorEventListener, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+            Log.d(TAG, "继续游戏：传感器监听器已重新注册");
+        }
         
         // 根据当前阶段恢复相应的计时器
         if (isBuffering) {
@@ -646,6 +825,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     private void endGame() {
         gameInProgress = false;
         
+        // 停止所有音频
+        stopAllAudio();
+        
         // 取消计时器
         if (gameTimer != null) {
             gameTimer.cancel();
@@ -722,7 +904,7 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
 
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        if (!gameInProgress) return false;
+        if (!gameInProgress || isPaused) return false;
         
         float diffY = e2.getY() - e1.getY();
         float diffX = e2.getX() - e1.getX();
@@ -770,6 +952,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     protected void onPause() {
         super.onPause();
         
+        // 停止所有音频
+        stopAllAudio();
+        
         // 取消注册传感器监听器，避免电池消耗
         if (sensorManager != null) {
             sensorManager.unregisterListener(sensorEventListener);
@@ -800,6 +985,9 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
             pauseDialog.dismiss();
             pauseDialog = null;
         }
+        
+        // 替换TTS资源释放为音频资源释放
+        releaseAudioPlayers();
         
         // 清理动画
         if (textViewWord != null) {
