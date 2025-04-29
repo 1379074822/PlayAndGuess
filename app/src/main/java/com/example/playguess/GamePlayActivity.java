@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 
 public class GamePlayActivity extends BaseActivity implements GestureDetector.OnGestureListener, SensorEventListener {
 
@@ -316,9 +317,26 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      * 加载词库
      */
     private void loadWordLibrary(String libraryId) {
-        WordLibraryManager libraryManager = WordLibraryManager.getInstance(this);
-        wordLibrary = libraryManager.getLibraryById(libraryId);
+        // 处理特殊词库ID
+        if (GameActivity.ALL_LIBRARIES_ID.equals(libraryId)) {
+            // 动态创建包含所有词库词语的词库
+            wordLibrary = createAllLibrariesWordLibrary();
+        } else if (GameActivity.RANDOM_LIBRARY_ID.equals(libraryId)) {
+            // 这个分支不应该被触发，因为随机词库在GameActivity中已经被选中
+            // 如果发生，则使用默认处理
+            WordLibraryManager libraryManager = WordLibraryManager.getInstance(this);
+            List<WordLibrary> libraries = libraryManager.getAllLibraries();
+            if (!libraries.isEmpty()) {
+                int randomIndex = new Random().nextInt(libraries.size());
+                wordLibrary = libraries.get(randomIndex);
+            }
+        } else {
+            // 正常加载指定ID的词库
+            WordLibraryManager libraryManager = WordLibraryManager.getInstance(this);
+            wordLibrary = libraryManager.getLibraryById(libraryId);
+        }
 
+        // 检查词库有效性
         if (wordLibrary == null || wordLibrary.getWords() == null || wordLibrary.getWords().isEmpty()) {
             Toast.makeText(this, "词库为空", Toast.LENGTH_SHORT).show();
             finish();
@@ -327,6 +345,35 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
 
         // 显示词库标题
         textViewLibraryTitle.setText(wordLibrary.getTitle());
+    }
+    
+    /**
+     * 创建包含所有词库词语的词库
+     */
+    private WordLibrary createAllLibrariesWordLibrary() {
+        WordLibraryManager libraryManager = WordLibraryManager.getInstance(this);
+        List<WordLibrary> libraries = libraryManager.getAllLibraries();
+        
+        // 创建新的合并词库
+        WordLibrary allLibrary = new WordLibrary();
+        allLibrary.setId(GameActivity.ALL_LIBRARIES_ID);
+        allLibrary.setTitle(getString(R.string.all_libraries));
+        
+        // 合并所有词语
+        List<String> allWords = new ArrayList<>();
+        for (WordLibrary library : libraries) {
+            allWords.addAll(library.getWords());
+        }
+        
+        // 去重
+        Set<String> uniqueWords = new HashSet<>(allWords);
+        allWords = new ArrayList<>(uniqueWords);
+        
+        // 打乱顺序
+        Collections.shuffle(allWords);
+        
+        allLibrary.setWords(allWords);
+        return allLibrary;
     }
 
     /**
@@ -454,43 +501,50 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      * 显示下一个词语
      */
     private void showNextWord() {
-        if (currentWordIndex < wordList.size()) {
-            String word = wordList.get(currentWordIndex);
-            textViewWord.setText(word);
-            
-            // 确保文本视图是可见的
-            textViewWord.setVisibility(View.VISIBLE);
-            
-            // 显示单词的动画效果
-            textViewWord.setAlpha(0f);
-            textViewWord.animate()
-                    .alpha(1f)
-                    .setDuration(300)
-                    .setListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            // 确保动画结束后词条是可见的
-                            textViewWord.setAlpha(1f);
-                        }
-                    })
-                    .start();
-            
-            // 500ms后再次确认词条可见性
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (textViewWord != null && textViewWord.getAlpha() < 1f) {
+        // 先进行边界检查
+        if (currentWordIndex < 0) {
+            Log.e(TAG, "showNextWord: currentWordIndex为负数: " + currentWordIndex);
+            currentWordIndex = 0;
+        }
+        
+        if (currentWordIndex >= wordList.size()) {
+            Log.d(TAG, "showNextWord: 所有词语已经用完，游戏结束");
+            endGame();
+            return;
+        }
+        
+        String word = wordList.get(currentWordIndex);
+        textViewWord.setText(word);
+        
+        // 确保文本视图是可见的
+        textViewWord.setVisibility(View.VISIBLE);
+        
+        // 显示单词的动画效果
+        textViewWord.setAlpha(0f);
+        textViewWord.animate()
+                .alpha(1f)
+                .setDuration(300)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        // 确保动画结束后词条是可见的
                         textViewWord.setAlpha(1f);
                     }
+                })
+                .start();
+        
+        // 500ms后再次确认词条可见性
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (textViewWord != null && textViewWord.getAlpha() < 1f) {
+                    textViewWord.setAlpha(1f);
                 }
-            }, 500);
-            
-            // 记录日志
-            Log.d(TAG, "显示词条: " + word);
-        } else {
-            // 所有词语已经用完，游戏结束
-            endGame();
-        }
+            }
+        }, 500);
+        
+        // 记录日志
+        Log.d(TAG, "显示词条: " + word + " (索引: " + currentWordIndex + ", 总数: " + wordList.size() + ")");
     }
 
     /**
@@ -498,6 +552,13 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      */
     private void wordGuessedCorrectly() {
         if (!gameInProgress) return;
+        
+        // 添加边界检查，防止数组越界
+        if (currentWordIndex >= wordList.size()) {
+            Log.w(TAG, "尝试访问超出边界的索引：" + currentWordIndex + ", 列表大小：" + wordList.size());
+            endGame();
+            return;
+        }
         
         String currentWord = wordList.get(currentWordIndex);
         WordResult result = new WordResult(currentWord, true, false);
@@ -523,6 +584,13 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      */
     private void wordSkipped() {
         if (!gameInProgress) return;
+        
+        // 添加边界检查，防止数组越界
+        if (currentWordIndex >= wordList.size()) {
+            Log.w(TAG, "尝试访问超出边界的索引：" + currentWordIndex + ", 列表大小：" + wordList.size());
+            endGame();
+            return;
+        }
         
         String currentWord = wordList.get(currentWordIndex);
         WordResult result = new WordResult(currentWord, false, true);
@@ -905,6 +973,16 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         if (!gameInProgress || isPaused) return false;
+        
+        // 检查是否所有单词已用完或当前索引越界
+        if (currentWordIndex >= wordList.size()) {
+            Log.w(TAG, "滑动手势：当前索引已越界，停止继续处理手势。currentWordIndex=" + 
+                  currentWordIndex + ", wordList.size()=" + wordList.size());
+            // 可能是用户在最后一个单词处理完之后又进行了滑动操作
+            // 直接结束游戏并返回，防止继续处理导致越界
+            endGame();
+            return true;
+        }
         
         float diffY = e2.getY() - e1.getY();
         float diffX = e2.getX() - e1.getX();

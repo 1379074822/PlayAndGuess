@@ -7,89 +7,174 @@
     android:background="#F8F8F8"
     tools:context=".GameActivity">
 
+    <!-- 标题栏部分 -->
     <TextView
         android:id="@+id/textViewGameTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="16dp"
         android:text="@string/select_library_title"
-        android:textSize="28sp"
-        android:textStyle="bold"
         android:textColor="#333333"
+        android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardViewSearch"
+    <!-- 搜索框和特殊按钮容器 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutSearchBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="48dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="4dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewGameTitle">
 
-        <EditText
-            android:id="@+id/editTextSearch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@null"
-            android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="8dp"
-            android:hint="@string/search_hint"
-            android:inputType="text"
-            android:padding="12dp"
-            android:textSize="16sp" />
-    </androidx.cardview.widget.CardView>
+        <!-- 搜索框 -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardViewSearch"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/specialButtonsContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
-    <!-- 词库列表容器 -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/libraryListContainer"
+            <EditText
+                android:id="@+id/editTextSearch"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:drawableStart="@drawable/ic_search"
+                android:drawablePadding="8dp"
+                android:hint="@string/search_hint"
+                android:inputType="text"
+                android:padding="8dp"
+                android:textSize="14sp" />
+        </androidx.cardview.widget.CardView>
+
+        <!-- 特殊按钮容器 -->
+        <LinearLayout
+            android:id="@+id/specialButtonsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- 全部词库按钮 -->
+            <LinearLayout
+                android:id="@+id/buttonAllLibraries"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginEnd="4dp">
+
+                <ImageButton
+                    android:id="@+id/imageButtonAllLibraries"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/circle_button_green"
+                    android:contentDescription="@string/all_libraries"
+                    android:padding="6dp"
+                    android:src="@android:drawable/ic_menu_sort_alphabetically"
+                    android:tint="#FFFFFF" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/all_libraries_short"
+                    android:textSize="9sp"
+                    android:textColor="#4CAF50"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 随机词库按钮 -->
+            <LinearLayout
+                android:id="@+id/buttonRandomLibrary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/imageButtonRandomLibrary"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/circle_button_blue"
+                    android:contentDescription="@string/random_library"
+                    android:padding="6dp"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    android:tint="#FFFFFF" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/random_library_short"
+                    android:textSize="9sp"
+                    android:textColor="#2196F3"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 词库列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewLibraries"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginTop="12dp"
+        android:clipToPadding="false"
+        android:fadeScrollbars="true"
+        android:orientation="horizontal"
+        android:overScrollMode="never"
+        android:paddingStart="8dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp"
+        android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cardViewSearch"
-        app:layout_constraintHeight_default="wrap">
+        app:layout_constraintTop_toBottomOf="@+id/layoutSearchBar" />
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerViewLibraries"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:clipToPadding="false"
-            android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
-            android:scrollbars="none"
-            android:fadeScrollbars="true"
-            android:overScrollMode="never"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintVertical_bias="0.5" />
+    <!-- 空词库提示文本 -->
+    <TextView
+        android:id="@+id/textViewEmptyLibraries"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/no_libraries_yet"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/layoutSearchBar" />
 
-        <TextView
-            android:id="@+id/textViewEmptyLibraries"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/no_libraries_yet"
-            android:textSize="18sp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- 按钮说明提示 -->
+    <TextView
+        android:id="@+id/textViewButtonHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:text="@string/special_buttons_hint"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

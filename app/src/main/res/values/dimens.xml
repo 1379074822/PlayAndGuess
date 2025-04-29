@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 词库卡片尺寸 -->
-    <dimen name="library_card_width">200dp</dimen>
-    <dimen name="library_card_height">200dp</dimen>
+    <dimen name="library_card_width">160dp</dimen>
+    <dimen name="library_card_height">160dp</dimen>
 </resources> 
