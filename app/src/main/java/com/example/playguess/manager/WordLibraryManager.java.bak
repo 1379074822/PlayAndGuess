@@ -1,0 +1,239 @@
+package com.example.playguess.manager;
+
+import android.content.Context;
+import android.util.Log;
+
+import com.example.playguess.database.WordLibraryDao;
+import com.example.playguess.model.Word;
+import com.example.playguess.model.WordLibrary;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * 词库管理器
+ * 负责管理和提供词库数据
+ * 兼容旧版系统的词库格式和新版SQLite词库格式
+ */
+public class WordLibraryManager {
+    private static final String TAG = "WordLibraryManager";
+    private static final String FILE_NAME = "word_libraries.json";
+    
+    private static WordLibraryManager instance;
+    private Context context;
+    private WordLibraryDao libraryDao;
+    private final Gson gson;
+    private List<WordLibrary> libraries;
+    
+    // 获取单例
+    public static synchronized WordLibraryManager getInstance(Context context) {
+        if (instance == null) {
+            instance = new WordLibraryManager(context.getApplicationContext());
+        }
+        return instance;
+    }
+    
+    private WordLibraryManager(Context context) {
+        this.context = context;
+        this.libraryDao = new WordLibraryDao(context);
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
+        
+        // 初始化
+        preloadLibraries();
+    }
+    
+    /**
+     * 预加载词库
+     */
+    private void preloadLibraries() {
+        Log.d(TAG, "开始预加载词库...");
+        // 确保至少有默认词库加载
+        List<WordLibrary> allLibraries = libraryDao.getAllLibraries();
+        if (allLibraries.isEmpty()) {
+            Log.d(TAG, "没有找到词库，创建默认词库");
+            createDefaultLibraries();
+        } else {
+            Log.d(TAG, "已找到 " + allLibraries.size() + " 个词库");
+        }
+    }
+    
+    /**
+     * 创建默认词库
+     */
+    private void createDefaultLibraries() {
+        // 数据库系统应该自动创建默认词库，这里是备用方案
+        Log.d(TAG, "创建默认词库");
+        
+        // 如果SQLite数据库没有创建默认词库，在这里手动创建
+        // 这种情况通常不会发生，因为DatabaseHelper中已经实现了insertInitialData
+    }
+    
+    /**
+     * 获取所有词库
+     */
+    public List<com.example.playguess.model.WordLibrary> getAllLibraries() {
+        List<com.example.playguess.model.WordLibrary> newLibraries = libraryDao.getAllLibraries();
+        return convertToOldFormat(newLibraries);
+    }
+    
+    /**
+     * 根据ID获取词库
+     */
+    public com.example.playguess.model.WordLibrary getLibraryById(String libraryId) {
+        if (libraryId == null) return null;
+        
+        com.example.playguess.model.WordLibrary library = libraryDao.getLibraryById(libraryId);
+        if (library != null) {
+            // 获取词库中的词条
+            List<Word> words = libraryDao.getWordsByLibraryId(libraryId);
+            library.setWords(words);
+        }
+        return convertToOldFormat(library);
+    }
+    
+    /**
+     * 将新版词库格式转换为旧版格式
+     */
+    private List<com.example.playguess.model.WordLibrary> convertToOldFormat(
+            List<com.example.playguess.model.WordLibrary> newLibraries) {
+        List<com.example.playguess.model.WordLibrary> result = new ArrayList<>();
+        for (com.example.playguess.model.WordLibrary library : newLibraries) {
+            result.add(convertToOldFormat(library));
+        }
+        return result;
+    }
+    
+    /**
+     * 将新版词库对象转换为旧版格式
+     */
+    private com.example.playguess.model.WordLibrary convertToOldFormat(
+            com.example.playguess.model.WordLibrary library) {
+        if (library == null) return null;
+        
+        // 创建旧格式的词库对象
+        com.example.playguess.model.WordLibrary oldLibrary = 
+                new com.example.playguess.model.WordLibrary();
+        oldLibrary.setId(library.getId());
+        oldLibrary.setTitle(library.getName()); // 使用name作为title
+        
+        // 提取词条文本
+        List<String> wordTexts = new ArrayList<>();
+        for (Word word : library.getWords()) {
+            wordTexts.add(word.getText());
+        }
+        oldLibrary.setWords(wordTexts);
+        
+        return oldLibrary;
+    }
+    
+    /**
+     * 搜索词库
+     */
+    public List<com.example.playguess.model.WordLibrary> searchLibraries(String query) {
+        List<com.example.playguess.model.WordLibrary> allLibraries = getAllLibraries();
+        if (query == null || query.trim().isEmpty()) {
+            return allLibraries;
+        }
+        
+        List<com.example.playguess.model.WordLibrary> results = new ArrayList<>();
+        String lowerQuery = query.toLowerCase();
+        
+        for (com.example.playguess.model.WordLibrary library : allLibraries) {
+            if (library.getTitle().toLowerCase().contains(lowerQuery)) {
+                results.add(library);
+            }
+        }
+        
+        return results;
+    }
+    
+    /**
+     * 为词库中的词语去重
+     */
+    private List<String> removeDuplicates(List<String> words) {
+        // 使用HashSet去重
+        Set<String> uniqueWordsSet = new HashSet<>(words);
+        return new ArrayList<>(uniqueWordsSet);
+    }
+    
+    /**
+     * 添加新词库
+     */
+    public boolean addLibrary(WordLibrary library) {
+        if (library == null || library.getTitle() == null || library.getTitle().isEmpty()) {
+            return false;
+        }
+        
+        // 为词库中的词语去重
+        List<String> uniqueWords = removeDuplicates(library.getWords());
+        library.setWords(uniqueWords);
+        
+        libraries.add(library);
+        return saveLibraries();
+    }
+    
+    /**
+     * 更新词库
+     */
+    public boolean updateLibrary(WordLibrary library) {
+        if (library == null || library.getId() == null) {
+            return false;
+        }
+        
+        // 为词库中的词语去重
+        List<String> uniqueWords = removeDuplicates(library.getWords());
+        library.setWords(uniqueWords);
+        
+        for (int i = 0; i < libraries.size(); i++) {
+            if (libraries.get(i).getId().equals(library.getId())) {
+                libraries.set(i, library);
+                return saveLibraries();
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 删除词库
+     */
+    public boolean deleteLibrary(String id) {
+        if (id == null) {
+            return false;
+        }
+        
+        for (int i = 0; i < libraries.size(); i++) {
+            if (libraries.get(i).getId().equals(id)) {
+                libraries.remove(i);
+                return saveLibraries();
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 保存所有词库
+     */
+    private boolean saveLibraries() {
+        File file = new File(context.getFilesDir(), FILE_NAME);
+        try (FileWriter writer = new FileWriter(file)) {
+            gson.toJson(libraries, writer);
+            return true;
+        } catch (IOException e) {
+            Log.e(TAG, "Error saving libraries: " + e.getMessage());
+            return false;
+        }
+    }
+} 

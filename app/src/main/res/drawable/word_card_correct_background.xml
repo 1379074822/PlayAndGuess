@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    
+    <!-- 圆角设置 -->
+    <corners android:radius="20dp" />
+    
+    <!-- 渐变背景 - 绿色调 -->
+    <gradient
+        android:type="linear"
+        android:startColor="#D4EDDA"
+        android:centerColor="#C3E6CB"
+        android:endColor="#B1DFBB"
+        android:angle="45" />
+    
+    <!-- 边框设置 -->
+    <stroke
+        android:width="2dp"
+        android:color="#28A745" />
+    
+    <!-- 内部填充 -->
+    <padding
+        android:left="16dp"
+        android:right="16dp"
+        android:top="12dp"
+        android:bottom="12dp" />
+    
+</shape> 
