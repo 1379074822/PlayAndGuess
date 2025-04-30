@@ -9,7 +9,9 @@ import android.content.SharedPreferences;
 public class GameSettingsManager {
     private static final String PREFS_NAME = "game_settings";
     private static final String KEY_GAME_DURATION = "game_duration";
+    private static final String KEY_AUDIO_ENABLED = "audio_enabled";
     private static final int DEFAULT_DURATION = 120; // 默认游戏时长为120秒
+    private static final boolean DEFAULT_AUDIO_ENABLED = false; // 默认音频关闭
     
     private static GameSettingsManager instance;
     private final SharedPreferences preferences;
@@ -42,5 +44,21 @@ public class GameSettingsManager {
      */
     public int getGameDuration() {
         return preferences.getInt(KEY_GAME_DURATION, DEFAULT_DURATION);
+    }
+    
+    /**
+     * 设置音频是否启用
+     * @param enabled 是否启用音频
+     */
+    public void setAudioEnabled(boolean enabled) {
+        preferences.edit().putBoolean(KEY_AUDIO_ENABLED, enabled).apply();
+    }
+    
+    /**
+     * 获取音频是否启用
+     * @return 音频是否启用
+     */
+    public boolean isAudioEnabled() {
+        return preferences.getBoolean(KEY_AUDIO_ENABLED, DEFAULT_AUDIO_ENABLED);
     }
 } 

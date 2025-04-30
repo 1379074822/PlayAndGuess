@@ -616,6 +616,13 @@ public class GamePlayActivity extends BaseActivity implements GestureDetector.On
      * @param text 要播放的文本
      */
     private void speakText(String text) {
+        // 检查音频设置是否启用
+        boolean audioEnabled = GameSettingsManager.getInstance(this).isAudioEnabled();
+        if (!audioEnabled) {
+            Log.d(TAG, "音频功能已关闭，跳过音频播放: " + text);
+            return;
+        }
+        
         // 如果音频未准备好，静默返回
         if (!audioReady) {
             Log.d(TAG, "音频未准备好，跳过音频播放: " + text);

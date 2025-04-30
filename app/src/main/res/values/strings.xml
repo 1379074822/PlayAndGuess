@@ -32,6 +32,8 @@
     <string name="seconds">秒</string>
     <string name="settings_saved">设置已保存</string>
     <string name="please_enter_valid_duration">请输入有效的时长（10-600秒）</string>
+    <string name="audio_setting_title">音频设置</string>
+    <string name="audio_setting_enabled">启用游戏提示音频</string>
     
     <!-- 游戏页面字符串 -->
     <string name="swipe_up_correct">向上滑动：猜对了</string>
@@ -66,4 +68,7 @@
     <string name="all_libraries_short">全部词库</string>
     <string name="random_library_short">随机词库</string>
     <string name="special_buttons_hint">提示：左侧为全部词库，右侧为随机选择词库</string>
+    <string name="action_info">关于</string>
+    <string name="changelog_title">更新日志</string>
+    <string name="changelog_dialog_close">关闭</string>
 </resources> 

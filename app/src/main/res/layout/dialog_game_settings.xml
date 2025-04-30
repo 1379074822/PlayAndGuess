@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
     <TextView
         android:layout_width="match_parent"
@@ -11,86 +11,108 @@
         android:text="@string/game_duration_setting"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:paddingBottom="8dp" />
 
     <RadioGroup
         android:id="@+id/radioGroupDuration"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="wrap_content">
 
         <RadioButton
             android:id="@+id/radioButton120"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/duration_120"
-            android:textSize="16sp"
-            android:padding="8dp" />
+            android:text="@string/duration_120" />
 
         <RadioButton
             android:id="@+id/radioButton300"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/duration_300"
-            android:textSize="16sp"
-            android:padding="8dp" />
+            android:text="@string/duration_300" />
 
         <RadioButton
             android:id="@+id/radioButtonCustom"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/duration_custom"
-            android:textSize="16sp"
-            android:padding="8dp" />
+            android:text="@string/duration_custom" />
     </RadioGroup>
 
     <LinearLayout
-        android:id="@+id/layoutCustomDuration"
+        android:id="@+id/customDurationLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="8dp"
-        android:visibility="gone">
-
-        <EditText
-            android:id="@+id/editTextCustomDuration"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:inputType="number"
-            android:hint="@string/enter_custom_duration"
-            android:textSize="16sp" />
+        android:visibility="gone"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/seconds"
-            android:textSize="16sp"
+            android:text="@string/enter_custom_duration"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/editTextCustomDuration"
+            android:layout_width="80dp"
+            android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:layout_gravity="center_vertical" />
+            android:inputType="number"
+            android:hint="60" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/seconds"
+            android:textSize="16sp" />
     </LinearLayout>
+
+    <!-- Audio Settings Section -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/audio_setting_title"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:paddingBottom="8dp" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/switchAudio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/audio_setting_enabled"
+        android:checked="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="24dp">
+        android:gravity="end"
+        android:layout_marginTop="16dp">
 
         <Button
             android:id="@+id/buttonCancel"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="@string/cancel"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="8dp"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
-            android:id="@+id/buttonConfirm"
-            android:layout_width="0dp"
+            android:id="@+id/buttonOk"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="@string/confirm"
-            android:layout_marginStart="8dp" />
+            style="?android:attr/buttonBarButtonStyle" />
     </LinearLayout>
 </LinearLayout> 

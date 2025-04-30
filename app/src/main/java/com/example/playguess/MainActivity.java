@@ -14,6 +14,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.playguess.manager.GameSettingsManager;
@@ -75,6 +77,10 @@ public class MainActivity extends BaseActivity {
             // 显示设置对话框
             showSettingsDialog();
             return true;
+        } else if (id == R.id.action_info) {
+            // 显示更新日志
+            showChangelogDialog();
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -93,13 +99,18 @@ public class MainActivity extends BaseActivity {
         RadioButton radioButton120 = dialogView.findViewById(R.id.radioButton120);
         RadioButton radioButton300 = dialogView.findViewById(R.id.radioButton300);
         RadioButton radioButtonCustom = dialogView.findViewById(R.id.radioButtonCustom);
-        LinearLayout layoutCustomDuration = dialogView.findViewById(R.id.layoutCustomDuration);
+        LinearLayout layoutCustomDuration = dialogView.findViewById(R.id.customDurationLayout);
         EditText editTextCustomDuration = dialogView.findViewById(R.id.editTextCustomDuration);
+        androidx.appcompat.widget.SwitchCompat switchAudio = dialogView.findViewById(R.id.switchAudio);
         Button buttonCancel = dialogView.findViewById(R.id.buttonCancel);
-        Button buttonConfirm = dialogView.findViewById(R.id.buttonConfirm);
+        Button buttonOk = dialogView.findViewById(R.id.buttonOk);
         
-        // 获取当前设置的游戏时长
+        // 获取当前设置
         int currentDuration = settingsManager.getGameDuration();
+        boolean isAudioEnabled = settingsManager.isAudioEnabled();
+        
+        // 设置当前音频状态
+        switchAudio.setChecked(isAudioEnabled);
         
         // 根据当前设置选中对应的选项
         if (currentDuration == 120) {
@@ -137,7 +148,7 @@ public class MainActivity extends BaseActivity {
         });
         
         // 设置确定按钮点击事件
-        buttonConfirm.setOnClickListener(new View.OnClickListener() {
+        buttonOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // 保存设置
@@ -168,8 +179,12 @@ public class MainActivity extends BaseActivity {
                     }
                 }
                 
-                // 保存设置
+                // 保存游戏时长设置
                 settingsManager.setGameDuration(selectedDuration);
+                
+                // 保存音频设置
+                settingsManager.setAudioEnabled(switchAudio.isChecked());
+                
                 Toast.makeText(MainActivity.this, R.string.settings_saved, Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             }
@@ -177,5 +192,67 @@ public class MainActivity extends BaseActivity {
         
         // 显示对话框
         dialog.show();
+    }
+
+    /**
+     * 显示更新日志对话框
+     */
+    private void showChangelogDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.changelog_title);
+        
+        // 从raw资源文件中读取更新日志内容
+        String changelogText = readRawTextFile(R.raw.changelog);
+        
+        // 创建ScrollView以支持滚动
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setPadding(30, 10, 30, 10);
+        
+        // 创建一个TextView来显示更新日志
+        TextView textView = new TextView(this);
+        textView.setPadding(0, 10, 0, 10);
+        textView.setText(changelogText);
+        textView.setTextIsSelectable(true); // 可以让用户选择和复制文本
+        
+        // 设置TextView的布局参数，确保它能正确填充ScrollView
+        ScrollView.LayoutParams layoutParams = new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT);
+        textView.setLayoutParams(layoutParams);
+        
+        // 将TextView添加到ScrollView中
+        scrollView.addView(textView);
+        
+        // 设置ScrollView作为对话框的视图
+        builder.setView(scrollView);
+        builder.setPositiveButton(R.string.changelog_dialog_close, null);
+        
+        // 显示对话框
+        builder.create().show();
+    }
+    
+    /**
+     * 从raw资源读取文本文件
+     * @param resourceId 资源ID
+     * @return 文件内容字符串
+     */
+    private String readRawTextFile(int resourceId) {
+        StringBuilder content = new StringBuilder();
+        try {
+            java.io.InputStream inputStream = getResources().openRawResource(resourceId);
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream));
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+            
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            content.append("无法读取更新日志内容");
+        }
+        
+        return content.toString();
     }
 } 
